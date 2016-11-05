@@ -10,6 +10,7 @@ namespace WebApplication.Controllers
     {
         public ActionResult Index()
         {
+            ViewData["Title"] = "Home";
             return View();
         }
 
