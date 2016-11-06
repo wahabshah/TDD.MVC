@@ -1,9 +1,8 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Web.Mvc;
 using WebApplication.Controllers;
-using System.Collections.Generic;
-using System.Diagnostics;
+using Moq;
+using System.Web.Security;
 
 namespace WebApplication.Tests
 {
@@ -41,12 +40,22 @@ namespace WebApplication.Tests
             ((RedirectToRouteResult)result).RouteValues.TryGetValue("action", out actionName);
             Assert.AreEqual(actionName, "Index");
         }
-       // public void Register_Can_Create_User_Successfully()
-        //{
+        [DataTestMethod]
+        [DataRow("a")]
+        [DataRow("b")]
+        public void Register_Can_Create_User_Successfully(string a)
+        {
         //    var ac = new AccountController();
         //    ac.Register(username, email, password, securityQuestion, securityAnswer);
-        //   // Moq.Mock<System.Web.Security.Membership.Provider>()
+        //    var x = Membership.Provider;
+        //    var provider = new Mock<MembershipProvider>();
+        //    MembershipCreateStatus state;
+        //    //MembershipUser user = new MembershipUser();
+        //    provider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out state))
+        //        .Returns(1);
+        //    //provider.Object.CreateUser()
+        //    // Moq.Mock<System.Web.Security.Membership.Provider>()
 
-        //}
+        }
     }
 }
