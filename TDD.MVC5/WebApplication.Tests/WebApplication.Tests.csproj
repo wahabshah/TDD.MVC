@@ -98,6 +98,8 @@
   </Choose>
   <ItemGroup>
     <Compile Include="AccountControllerTests.cs" />
+    <Compile Include="AppHelper.cs" />
+    <Compile Include="ModelStateAssertions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
