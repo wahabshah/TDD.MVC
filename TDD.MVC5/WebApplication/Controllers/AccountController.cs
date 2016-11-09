@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
+using WebApplication.Helpers;
 
 namespace WebApplication.Controllers
 {
@@ -27,8 +28,12 @@ namespace WebApplication.Controllers
         {
             if (string.IsNullOrEmpty(username))
                 ModelState.AddModelError("username", "username is required");
+            else if (!AppHelper.IsValidUsername(username))
+                ModelState.AddModelError("username", "username is invalid");
             if (string.IsNullOrEmpty(email))
                 ModelState.AddModelError("email", "email is required");
+            else if (!AppHelper.IsValidEmail(email))
+                ModelState.AddModelError("email", "email is invalid");
             if (string.IsNullOrEmpty(password))
                 ModelState.AddModelError("password", "password is required");
             if (string.IsNullOrEmpty(securityquestion))
@@ -36,25 +41,23 @@ namespace WebApplication.Controllers
             if (string.IsNullOrEmpty(securityanswer))
                 ModelState.AddModelError("securityAnswer", "security answer is required");
 
-            //if (!isValidEmail(email))
-            //    ModelState.AddModelError("email", "email is invalid");
-
             if (!ModelState.IsValid)
             {
                 return View();
             }
             System.Web.Security.MembershipCreateStatus status;
-            _provider.CreateUser(username,  password, email,securityquestion, securityanswer, true, null, out status);
-            return RedirectToAction("Index","Home");
-        }
+           var newUser = _provider.CreateUser(username,  password, email,securityquestion, securityanswer, true, null, out status);
 
-        private bool isValidEmail(string email)
-        {
-            string pat = @"([A-Za-z0-9]+)@([A-Za-z0-9]).*";
-            Regex r = new Regex(pat);
-            Match m  = r.Match(email);
+            if(newUser != null)
+                return RedirectToAction("Index", "Home");
 
-            return m.Success;
+            if (status == System.Web.Security.MembershipCreateStatus.DuplicateUserName)
+                ModelState.AddModelError("provider", "username is not unique");
+            if (status == System.Web.Security.MembershipCreateStatus.DuplicateEmail)
+                ModelState.AddModelError("provider", "email is not unique");
+
+
+             return View();
         }
     }
 }

@@ -18,9 +18,13 @@ namespace WebApplication.Tests
         }
         public static bool IsValidUsername(string Username)
         {
-            var pattern = @"/\w{4}/g";
-            var regex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.Singleline);
-            return regex.IsMatch(Username);
+            if (Username.Length < 4)
+                return false;
+            
+            string patternWithUnderscore = @"^[A-Za-z][A-Za-z0-9_]+$";
+            var regexWithUnderscore = new Regex(patternWithUnderscore, RegexOptions.Compiled | RegexOptions.Singleline);
+
+           return regexWithUnderscore.IsMatch(Username);
         }
     }
 }

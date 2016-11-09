@@ -4,6 +4,7 @@ using WebApplication.Controllers;
 using Moq;
 using System.Web.Security;
 using ExtensionMethods;
+using WebApplication.Helpers;
 
 namespace WebApplication.Tests
 {
@@ -60,7 +61,7 @@ namespace WebApplication.Tests
             // run tests
             var ac = new AccountController(mockProvider.Object);
             var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
-            //mockProvider.Verify(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out state));
+           
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(RedirectToRouteResult));
             object actionName;
@@ -128,7 +129,7 @@ namespace WebApplication.Tests
         [DataRow("sd@fdf@fdfd.com")]
         public void IsValidEmail_Invalid_Emails_Should_Return_False(string invalidEmail)
         {
-            Assert.IsFalse(AppHelper.IsValidEmail(invalidEmail), $"Email validation failed for {invalidEmail}");
+            Assert.IsFalse(AppHelperTest.IsValidEmail(invalidEmail), $"Email validation failed for {invalidEmail}");
         }
         [DataTestMethod]
         [DataRow("test@test.com")]
@@ -141,14 +142,114 @@ namespace WebApplication.Tests
         {
             Assert.IsTrue(AppHelperTest.IsValidEmail(validEmail), $"Email validation failed for {validEmail}");
         }
+        
+        [TestMethod]
+        public void Register_ValidEmail_Successfully_Registers_User()
+        {
+            
+            var mockProvider = new Mock<MembershipProvider>();
+            MembershipCreateStatus createStatus = MembershipCreateStatus.Success;
+            var mockUser = new Mock<MembershipUser>();
+
+            mockProvider.Setup(m => m.CreateUser(username, password, "wahab.shah1986@wiesheu.de", securityQuestion, securityAnswer, true, null, out createStatus))
+                        .Returns(() => mockUser.Object);
+
+            var ac = new AccountController(mockProvider.Object);
+            var result = ac.Register(username, "wahab.shah1986@wiesheu.de", password,  securityQuestion, securityAnswer);
+
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(RedirectToRouteResult));
+            Assert.IsTrue(ac.ModelState.IsValid);           
+        }
+        [TestMethod]
+        public void Register_InvalidEmail_Should_Return_Error()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+            var ac = new AccountController(mockProvider.Object);
+
+            var result = ac.Register(username, "wahab.shah@  wiesheu.de", password, securityQuestion, securityAnswer);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ActionResult));
+            Assert.IsTrue(!ac.ModelState.IsValid);
+            Assert.AreEqual(ac.ModelState["email"].Errors[0].ErrorMessage, "email is invalid");
+        }
         [DataTestMethod]
         [DataRow("A34")]
-        [DataRow("3AAA")]
-        [DataRow("A$AA")]
-        public void IsValidUsername_Invalid_Usernames_Should_Return_False(string invalidUsername)
+        [DataRow("3A")]
+        [DataRow("3")]
+        [DataRow("      ")]
+        public void IsValidUsername_ShortUsernames_Should_Return_False(string invalidUsername)
         {
-            Assert.IsFalse(AppHelperTest.IsValidUsername(invalidUsername), $"Username validation failed for {invalidUsername}");
+            Assert.IsFalse(AppHelperTest.IsValidUsername(invalidUsername));
         }
-       
+        [DataTestMethod]
+        [DataRow("_34")]
+        [DataRow("3AAA")]
+        [DataRow(" $AA")]
+        public void IsValidUsername_Usernames_Starting_With_Non_Alpha_Should_Return_False(string invalidUsername)
+        {
+            Assert.IsFalse(AppHelperTest.IsValidUsername(invalidUsername));
+        }
+        [DataTestMethod]
+        [DataRow("user!")]
+        [DataRow("user@")]
+        [DataRow("user#")]
+        [DataRow("user$")]
+        public void IsValidUsername_Username_With_Invalid_Characters_Should_Return_False(string invalidUsername)
+        {
+            Assert.IsFalse(AppHelperTest.IsValidUsername(invalidUsername));
+        }
+        [DataTestMethod]
+        [DataRow("user123")]
+        [DataRow("us1_")]   
+        public void IsValidUsername_Valid_Username_Should_Return_True(string username)
+        {
+            Assert.IsTrue(AppHelperTest.IsValidUsername(username));
+        }
+        [TestMethod]
+        public void Register_ValidUsername_Should_Allow_Not_Return_Error()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+
+            var ac = new AccountController(mockProvider.Object);
+            var register = ac.Register("wahab_shah19", email, password, securityQuestion, securityAnswer);
+            Assert.IsNotNull(register);
+            Assert.IsInstanceOfType(register, typeof(ActionResult));
+            Assert.IsTrue(ac.ModelState.IsValid);
+        }
+        [TestMethod]
+        public void Register_InvalidUsername_Should_Return_Error()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+
+            var ac = new AccountController(mockProvider.Object);
+            var register = ac.Register("1h$", email, password, securityQuestion, securityAnswer);
+            Assert.IsNotNull(register);
+            Assert.IsInstanceOfType(register, typeof(ActionResult));
+            Assert.IsFalse(ac.ModelState.IsValid);
+            Assert.AreEqual(ac.ModelState["username"].Errors[0].ErrorMessage, "username is invalid");
+        }
+        [DataTestMethod]
+        [DataRow(System.Web.Security.MembershipCreateStatus.DuplicateUserName,"username is not unique")]
+        [DataRow(System.Web.Security.MembershipCreateStatus.DuplicateEmail, "email is not unique")]
+        public void Register_Should_Fail_If_Provider_Create_Fails(System.Web.Security.MembershipCreateStatus createStatus, string error)
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+             MembershipUser mockUser = null; //new Mock<MembershipUser>();
+
+            //CreateUser on error return null
+            mockProvider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out createStatus))
+                .Returns(()=> mockUser);
+           
+            var ac = new AccountController(mockProvider.Object);
+            var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ActionResult));
+            ac.ModelState.AssertErrorMessage("provider", error);
+            mockProvider.VerifyAll();
+        }
     }
 }
