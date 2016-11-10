@@ -5,16 +5,19 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
 using WebApplication.Helpers;
+using WebApplication.Models;
 
 namespace WebApplication.Controllers
 {
     public class AccountController : Controller
     {
         System.Web.Security.MembershipProvider _provider;
-        public AccountController() :this(null){ }
-        public AccountController(System.Web.Security.MembershipProvider provider)
+        IFormsAuthentication _formsAuth;
+        public AccountController() :this(null,null){ }
+        public AccountController(System.Web.Security.MembershipProvider provider,IFormsAuthentication formsAuth)
         {
             _provider = provider?? System.Web.Security.Membership.Provider;
+            _formsAuth = formsAuth ?? new FormsAuthenticationWrapper();
         }
         [AcceptVerbs("GET")]
         // GET: Account
@@ -27,37 +30,39 @@ namespace WebApplication.Controllers
         public ActionResult Register(string username, string email,string password, string securityquestion,string securityanswer)
         {
             if (string.IsNullOrEmpty(username))
-                ModelState.AddModelError("username", "username is required");
+                ViewData.ModelState.AddModelError("username", "username is required");
             else if (!AppHelper.IsValidUsername(username))
-                ModelState.AddModelError("username", "username is invalid");
+                ViewData.ModelState.AddModelError("username", "username is invalid");
             if (string.IsNullOrEmpty(email))
-                ModelState.AddModelError("email", "email is required");
+                ViewData.ModelState.AddModelError("email", "email is required");
             else if (!AppHelper.IsValidEmail(email))
-                ModelState.AddModelError("email", "email is invalid");
+                ViewData.ModelState.AddModelError("email", "email is invalid");
             if (string.IsNullOrEmpty(password))
-                ModelState.AddModelError("password", "password is required");
+                ViewData.ModelState.AddModelError("password", "password is required");
             if (string.IsNullOrEmpty(securityquestion))
-                ModelState.AddModelError("securityQuestion", "security question is required");
+                ViewData.ModelState.AddModelError("securityQuestion", "security question is required");
             if (string.IsNullOrEmpty(securityanswer))
-                ModelState.AddModelError("securityAnswer", "security answer is required");
+                ViewData.ModelState.AddModelError("securityAnswer", "security answer is required");
 
-            if (!ModelState.IsValid)
+            if (!ViewData.ModelState.IsValid)
             {
-                return View();
+                return View(new RegisterModel() {email=email,password=password,username=username,securityQuestion=securityquestion, securityAnswer=securityanswer });
             }
             System.Web.Security.MembershipCreateStatus status;
            var newUser = _provider.CreateUser(username,  password, email,securityquestion, securityanswer, true, null, out status);
 
-            if(newUser != null)
+            if (newUser != null)
+            {
+                _formsAuth.SetAuthCookie(username, false);
                 return RedirectToAction("Index", "Home");
+            }
 
             if (status == System.Web.Security.MembershipCreateStatus.DuplicateUserName)
-                ModelState.AddModelError("provider", "username is not unique");
+                ViewData.ModelState.AddModelError("provider", "username is not unique");
             if (status == System.Web.Security.MembershipCreateStatus.DuplicateEmail)
-                ModelState.AddModelError("provider", "email is not unique");
+                ViewData.ModelState.AddModelError("provider", "email is not unique");
 
-
-             return View();
+            return View(new RegisterModel() { email = email, password = password, username = username, securityQuestion = securityquestion, securityAnswer = securityanswer });
         }
     }
 }

@@ -5,6 +5,7 @@ using Moq;
 using System.Web.Security;
 using ExtensionMethods;
 using WebApplication.Helpers;
+using WebApplication.Models;
 
 namespace WebApplication.Tests
 {
@@ -23,6 +24,7 @@ namespace WebApplication.Tests
         {
             var ac = new AccountController();
             var result = ac.Register();
+
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ViewResult));
             Assert.AreEqual("Register", ac.ViewData["Title"]);
@@ -35,9 +37,12 @@ namespace WebApplication.Tests
             System.Web.Security.MembershipCreateStatus status;
             mockProvider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out status))
                         .Returns(new Mock<System.Web.Security.MembershipUser>().Object);
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
 
-            var ac = new AccountController(mockProvider.Object);
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
+
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(RedirectToRouteResult));
             object controllerName = "";
@@ -57,9 +62,11 @@ namespace WebApplication.Tests
             var user = new Mock<MembershipUser>();
             mockProvider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out state))
                 .Returns(user.Object);
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
 
             // run tests
-            var ac = new AccountController(mockProvider.Object);
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
            
             Assert.IsNotNull(result);
@@ -81,13 +88,14 @@ namespace WebApplication.Tests
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
-            ac.ModelState.AssertErrorMessage("username", "username is required");
+            ac.ViewData.ModelState.AssertErrorMessage("username", "username is required");
         }
         [TestMethod]
         public void Register_Should_Return_Error_If_Email_Is_Null()
         {
             var ac = new AccountController();
             var result = ac.Register(username, null, password, securityQuestion, securityAnswer);
+
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
             ac.ViewData.ModelState.AssertErrorMessage("email", "email is required");
@@ -97,27 +105,30 @@ namespace WebApplication.Tests
         {
             var ac = new AccountController();
             var result = ac.Register(username, email, "", securityQuestion, securityAnswer);
+
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
-            ac.ModelState.AssertErrorMessage("password", "password is required");
+            ac.ViewData.ModelState.AssertErrorMessage("password", "password is required");
         }
         [TestMethod]
         public void Register_Should_Return_Error_If_Question_Is_Null()
         {
             var ac = new AccountController();
             var result = ac.Register(username, email, password, null, securityAnswer);
+
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
-            ac.ModelState.AssertErrorMessage("securityQuestion", "security question is required");
+            ac.ViewData.ModelState.AssertErrorMessage("securityQuestion", "security question is required");
         }
         [TestMethod]
         public void Register_Should_Return_Error_If_Answer_Is_Null()
         {
             var ac = new AccountController();
             var result = ac.Register(username, email, password, securityQuestion, "");
+
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
-            ac.ModelState.AssertErrorMessage("securityAnswer", "security answer is required");
+            ac.ViewData.ModelState.AssertErrorMessage("securityAnswer", "security answer is required");
         }
         [DataTestMethod]
         [DataRow("sdfsdf dsfsdf")]
@@ -150,30 +161,32 @@ namespace WebApplication.Tests
             var mockProvider = new Mock<MembershipProvider>();
             MembershipCreateStatus createStatus = MembershipCreateStatus.Success;
             var mockUser = new Mock<MembershipUser>();
-
             mockProvider.Setup(m => m.CreateUser(username, password, "wahab.shah1986@wiesheu.de", securityQuestion, securityAnswer, true, null, out createStatus))
                         .Returns(() => mockUser.Object);
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
 
-            var ac = new AccountController(mockProvider.Object);
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var result = ac.Register(username, "wahab.shah1986@wiesheu.de", password,  securityQuestion, securityAnswer);
-
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(RedirectToRouteResult));
-            Assert.IsTrue(ac.ModelState.IsValid);           
+            Assert.IsTrue(ac.ViewData.ModelState.IsValid);           
         }
         [TestMethod]
         public void Register_InvalidEmail_Should_Return_Error()
         {
             var mockProvider = new Mock<MembershipProvider>();
-            var ac = new AccountController(mockProvider.Object);
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
 
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var result = ac.Register(username, "wahab.shah@  wiesheu.de", password, securityQuestion, securityAnswer);
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
-            Assert.IsTrue(!ac.ModelState.IsValid);
-            Assert.AreEqual(ac.ModelState["email"].Errors[0].ErrorMessage, "email is invalid");
+            Assert.IsTrue(!ac.ViewData.ModelState.IsValid);
+            Assert.AreEqual(ac.ViewData.ModelState["email"].Errors[0].ErrorMessage, "email is invalid");
         }
         [DataTestMethod]
         [DataRow("A34")]
@@ -212,24 +225,30 @@ namespace WebApplication.Tests
         public void Register_ValidUsername_Should_Allow_Not_Return_Error()
         {
             var mockProvider = new Mock<MembershipProvider>();
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
 
-            var ac = new AccountController(mockProvider.Object);
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var register = ac.Register("wahab_shah19", email, password, securityQuestion, securityAnswer);
+
             Assert.IsNotNull(register);
             Assert.IsInstanceOfType(register, typeof(ActionResult));
-            Assert.IsTrue(ac.ModelState.IsValid);
+            Assert.IsTrue(ac.ViewData.ModelState.IsValid);
         }
         [TestMethod]
         public void Register_InvalidUsername_Should_Return_Error()
         {
             var mockProvider = new Mock<MembershipProvider>();
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
 
-            var ac = new AccountController(mockProvider.Object);
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var register = ac.Register("1h$", email, password, securityQuestion, securityAnswer);
+
             Assert.IsNotNull(register);
             Assert.IsInstanceOfType(register, typeof(ActionResult));
-            Assert.IsFalse(ac.ModelState.IsValid);
-            Assert.AreEqual(ac.ModelState["username"].Errors[0].ErrorMessage, "username is invalid");
+            Assert.IsFalse(ac.ViewData.ModelState.IsValid);
+            Assert.AreEqual(ac.ViewData.ModelState["username"].Errors[0].ErrorMessage, "username is invalid");
         }
         [DataTestMethod]
         [DataRow(System.Web.Security.MembershipCreateStatus.DuplicateUserName,"username is not unique")]
@@ -238,18 +257,58 @@ namespace WebApplication.Tests
         {
             var mockProvider = new Mock<MembershipProvider>();
              MembershipUser mockUser = null; //new Mock<MembershipUser>();
-
             //CreateUser on error return null
             mockProvider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out createStatus))
                 .Returns(()=> mockUser);
-           
-            var ac = new AccountController(mockProvider.Object);
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username, false));
+
+            var ac = new AccountController(mockProvider.Object, mockFormsAuthentication.Object);
             var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(ActionResult));
-            ac.ModelState.AssertErrorMessage("provider", error);
+            ac.ViewData.ModelState.AssertErrorMessage("provider", error);
             mockProvider.VerifyAll();
+        }
+        [TestMethod]
+        public void Register_Should_Call_SetAuthCookie_On_Success()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+            MembershipCreateStatus createStauts= MembershipCreateStatus.Success;
+            var mockUser = new Mock<MembershipUser>();
+            mockProvider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out createStauts))
+                        .Returns(mockUser.Object);
+            var mockFormsAuthentication = new Mock<IFormsAuthentication>();
+            mockFormsAuthentication.Setup(m => m.SetAuthCookie(username,false));
+
+            var ac = new AccountController(mockProvider.Object,mockFormsAuthentication.Object);
+            var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
+            
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(RedirectToRouteResult));
+            mockProvider.VerifyAll();
+            mockFormsAuthentication.VerifyAll();              
+        }
+        [TestMethod]
+        public void Register_Invalid_Input_Should_Call_View_With_Same_Model()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+            MembershipCreateStatus mockCreateStatus = MembershipCreateStatus.DuplicateEmail;
+            MembershipUser mockUser = null;//new Mock<MembershipUser>();
+            mockProvider.Setup(m => m.CreateUser(username, password, email, securityQuestion, securityAnswer, true, null, out mockCreateStatus))
+                        .Returns(mockUser);
+            var mockFormsAuth = new Mock<IFormsAuthentication>();
+            mockFormsAuth.Setup(m => m.SetAuthCookie(username, false));
+
+            var ac = new AccountController(mockProvider.Object,mockFormsAuth.Object);
+            var result = ac.Register(username, email, password, securityQuestion, securityAnswer);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+            var registerModel = ((ViewResult)result).Model as RegisterModel;
+            Assert.IsNotNull(registerModel);
+            registerModel.AssertRegisterModel(username,email, securityQuestion, securityAnswer, password);                     
         }
     }
 }

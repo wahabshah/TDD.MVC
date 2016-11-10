@@ -1,0 +1,41 @@
+﻿
+@{
+    ViewBag.Title = "Register";
+}
+
+<h2>Register</h2>
+
+@Html.ValidationSummary()
+
+<form action="@Html.AttributeEncode(Url.Action("Register"))" method="post">
+    <div>
+        <label for="username">User Name</label>   
+        <br/>    
+        @Html.TextBox("username")
+        <br />
+
+        <label for="email">Email</label>  
+        <br/>     
+        @Html.TextBox("email")
+        <br />
+
+        <label for="password">Password</label>
+        <br/>     
+        @Html.TextBox("password")
+        <br />
+
+        <label for="securityquestion">Security Question</label> 
+        <br/>       
+        @Html.TextBox("securityquestion")
+        <br />
+
+        <label for="securityanswer">Security Answer</label>
+        <br/>      
+        @Html.TextBox("securityanswer")
+        <br />
+
+        <br />
+        @*<button type="submit">Register</button>*@
+        <input type="submit" value="Register" />
+    </div>
+</form>
