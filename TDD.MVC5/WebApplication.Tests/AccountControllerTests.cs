@@ -9,16 +9,19 @@ using WebApplication.Models;
 
 namespace WebApplication.Tests
 {
+
     [TestClass]
     public class AccountControllerTests
     {
         string username = "wahabshah";
         string email = "wahab.shah@wiesheu.de";
-        string password = "hallo";
+        string password = "lmi2ayPC()";
         string securityQuestion = "what is your mother maiden name?";
         string securityAnswer = "abida";
 
+        bool bRememberPassword = false;
 
+        #region Register Tests
         [TestMethod]
         public void Register_Can_Get_To_Register_View()
         {
@@ -310,5 +313,92 @@ namespace WebApplication.Tests
             Assert.IsNotNull(registerModel);
             registerModel.AssertRegisterModel(username,email, securityQuestion, securityAnswer, password);                     
         }
+#endregion
+
+        #region Login Tests
+        [TestMethod]
+        public void Login_Can_Navigate_To_Login()
+        {
+
+            var ac = new AccountController();
+            var result = ac.Login();
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+            Assert.AreEqual(ac.ViewData["Title"], "Login");
+        }
+        [TestMethod]
+        public void Login_Empty_Username_Should_Return_Error()
+        {
+            var ac = new AccountController();
+            var result = ac.Login("", password,bRememberPassword);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+            Assert.IsTrue(ac.ViewData.ModelState.ContainsKey("username"));
+            Assert.AreEqual(ac.ViewData.ModelState["username"].Errors[0].ErrorMessage, "username is required");
+        }
+        [TestMethod]
+        public void Login_Empty_Password_Should_Return_Error()
+        {
+            var ac = new AccountController();
+            var result = ac.Login(username,"",bRememberPassword);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+            Assert.IsTrue(ac.ViewData.ModelState.ContainsKey("password"));
+            Assert.AreEqual(ac.ViewData.ModelState["password"].Errors[0].ErrorMessage, "password is required");
+        }
+        [TestMethod]
+        public void Login_Can_Call_GetUser()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+            var mockUser = new Mock<MembershipUser>();
+            mockProvider.Setup(m => m.GetUser(username, false))
+                        .Returns(mockUser.Object);
+            var mockFormsAuth = new Mock<IFormsAuthentication>();
+
+            var ac = new AccountController(mockProvider.Object,mockFormsAuth.Object);
+            var result = ac.Login(username, password, bRememberPassword);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(RedirectToRouteResult));
+            mockProvider.VerifyAll();
+        }
+        [TestMethod]
+        public void Login_User_Or_Password_Not_Existing_Return_Error()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+            MembershipUser mockUser = null;
+            mockProvider.Setup(m => m.GetUser(username, bRememberPassword))
+                         .Returns(mockUser);
+            var mockFormsAuth = new Mock<IFormsAuthentication>();
+
+            var ac = new AccountController(mockProvider.Object, mockFormsAuth.Object);
+            var result = ac.Login(username, password, bRememberPassword);
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ViewResult));
+            Assert.IsTrue(ac.ViewData.ModelState.ContainsKey("provider"));
+            Assert.AreEqual(ac.ViewData.ModelState["provider"].Errors[0].ErrorMessage, "username or password is incorrect");
+        }
+        public void Login_If_Redirect_Url_Then_Redirect()
+        {
+            var mockProvider = new Mock<MembershipProvider>();
+            MembershipUser mockUser = null;
+            mockProvider.Setup(m => m.GetUser(username, bRememberPassword))
+                         .Returns(mockUser);
+            var mockFormsAuth = new Mock<IFormsAuthentication>();
+
+            var ac = new AccountController(mockProvider.Object, mockFormsAuth.Object);
+            ///ac.Request.
+            var result = ac.Login(username, password, bRememberPassword);
+
+           // Assert.ac.RouteData.DataTokens
+
+            Assert.IsNotNull(result);
+            //Assert.
+        }
+        #endregion
     }
 }

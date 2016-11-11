@@ -64,5 +64,35 @@ namespace WebApplication.Controllers
 
             return View(new RegisterModel() { email = email, password = password, username = username, securityQuestion = securityquestion, securityAnswer = securityanswer });
         }
+
+        [AcceptVerbs("GET")]
+        public ActionResult Login()
+        {
+            ViewData["Title"] = "Login";
+            return View();
+        }
+
+        [AcceptVerbs("POST")]
+        public ActionResult Login(string username, string password,bool bRememberPassword)
+        {
+            if (string.IsNullOrEmpty(username))
+                ViewData.ModelState.AddModelError("username", "username is required");
+            if (string.IsNullOrEmpty(password))
+                ViewData.ModelState.AddModelError("password", "password is required");
+
+            if (!ViewData.ModelState.IsValid)
+                return View();
+
+            var user = _provider.GetUser(username, bRememberPassword);
+
+            if (user == null)
+            {
+                ViewData.ModelState.AddModelError("provider", "username or password is incorrect");
+                return View();
+            }
+
+            
+            return RedirectToAction("Index","Home");
+        }
     }
 }
